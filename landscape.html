@@ -76,9 +76,10 @@
 
 			var prevTime = performance.now();
 			var velocity = new THREE.Vector3();
-			var direction = new THREE.Vector3();
 			var vertex = new THREE.Vector3();
 			var color = new THREE.Color();
+
+			let mesh;
 
 			init();
 			animate();
@@ -122,6 +123,10 @@
 				} );
 
 				scene.add( controls.getObject() );
+
+				mesh = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 300), new THREE.MeshPhongMaterial({color: 'black'}));
+				mesh.position.z = -200;
+				scene.add(mesh);
 
 				var onKeyDown = function ( event ) {
 
@@ -279,12 +284,32 @@
 
 					velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
 
+					const direction = new THREE.Vector3();
 					direction.z = Number( moveForward ) - Number( moveBackward );
 					direction.x = Number( moveRight ) - Number( moveLeft );
 					direction.normalize(); // this ensures consistent movements in all directions
 
-					if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-					if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+					if (moveForward || moveBackward) {
+						const rayDirection = new THREE.Vector3()
+						rayDirection.z = -direction.z;
+						rayDirection.applyQuaternion(camera.quaternion);
+
+						var rayCaster = new THREE.Raycaster(controls.getObject().position, rayDirection);
+						var intersects = rayCaster.intersectObject(mesh, true);
+
+						if(!(intersects.length > 0 && intersects[0].distance < 10)) velocity.z -= direction.z * 400.0 * delta;
+					}
+
+					if ( moveLeft || moveRight ) {
+						const rayDirection = new THREE.Vector3()
+						rayDirection.x = direction.x;
+						rayDirection.applyQuaternion(camera.quaternion);
+
+						var rayCaster = new THREE.Raycaster(controls.getObject().position, rayDirection);
+						var intersects = rayCaster.intersectObject(mesh, true);
+
+						if(!(intersects.length > 0 && intersects[0].distance < 10)) velocity.x -= direction.x * 400.0 * delta;
+					}
 
 					if ( onObject === true ) {
 
